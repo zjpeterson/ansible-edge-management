@@ -1,0 +1,76 @@
+---
+- name: Deploy workload
+  hosts: all
+
+  vars_files:
+    - workloads/{{ workload }}.yml
+
+  tasks:
+    - name: Enable lingering
+      ansible.builtin.command:
+        cmd: loginctl enable-linger
+        creates: /var/lib/systemd/linger/{{ ansible_user }}
+
+    - name: Pull images
+      containers.podman.podman_image:
+        name: "{{ item.1.image }}:{{ item.1.tag }}"
+      loop: "{{ workloads | subelements('containers') }}"
+
+    - name: Create pods
+      containers.podman.podman_pod:
+        state: created
+        name: "{{ item.name }}"
+        publish: "{{ item.ports | json_query('[].[host,container]') | map('join', ':') }}"
+        generate_systemd:
+          path: /tmp/podman_systemd
+      loop: "{{ workloads }}"
+
+    - name: Create containers
+      containers.podman.podman_container:
+        state: present
+        recreate: true
+        pod: "{{ item.0.name }}"
+        name: "{{ item.1.name }}"
+        image: "{{ item.1.image }}:{{ item.1.tag }}"
+      loop: "{{ workloads | subelements('containers') }}"
+
+    - name: Create systemd units
+      containers.podman.podman_pod:
+        name: "{{ item.name }}"
+        publish: "{{ item.ports | json_query('[].[host,container]') | map('join', ':') }}"
+        generate_systemd:
+          path: /tmp/podman_systemd
+      loop: "{{ workloads }}"
+
+    - name: Copy pod systemd units
+      ansible.builtin.copy:
+        src: /tmp/podman_systemd/pod-{{ item.name }}.service
+        dest: /etc/systemd/user/
+        remote_src: true
+      loop: "{{ workloads }}"
+      become: true
+
+    - name: Copy container systemd units
+      ansible.builtin.copy:
+        src: /tmp/podman_systemd/container-{{ item.1.name }}.service
+        dest: /etc/systemd/user/
+        remote_src: true
+      loop: "{{ workloads | subelements('containers') }}"
+      become: true
+
+    - name: (Re)start services
+      ansible.builtin.systemd:
+        name: "pod-{{ item.name }}.service"
+        scope: user
+        state: restarted
+        daemon_reload: true
+      loop: "{{ workloads }}"
+
+    - name: Open firewall
+      ansible.posix.firewalld:
+        port: "{{ item.1.host }}/{{ item.1.protocol }}"
+        permanent: true
+        immediate: true
+        state: enabled
+      loop: "{{ workloads | subelements('ports') }}"
+      become: true

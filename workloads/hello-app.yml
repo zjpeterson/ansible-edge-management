@@ -1,0 +1,11 @@
+---
+workloads:
+  - name: hello-app
+    containers:
+      - name: hello
+        image: quay.io/zachp/hello
+        tag: "1.2"
+    ports:
+      - host: 8080
+        container: 80
+        protocol: tcp

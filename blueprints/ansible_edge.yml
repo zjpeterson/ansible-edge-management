@@ -1,0 +1,21 @@
+---
+builder_blueprint_name: ansible_edge
+builder_compose_type: edge-commit
+builder_pub_key: ''
+builder_password: ansible
+builder_compose_customizations:
+  user:
+    name: worker
+    password: ansible
+    groups:
+      - users
+      - wheel
+builder_compose_pkgs:
+  - vim-enhanced
+  - git
+  - ansible-core
+builder_aap_url: http://10.10.10.10/api/v2/inventories/1/hosts/
+builder_aap_ks_user: edge
+builder_aap_ks_password: ansible
+builder_set_hostname: "{% raw %}{{ ansible_default_ipv4.macaddress | replace(':','') }}{% endraw %}"
+builder_set_variables: "{% raw %}ansible_host: '{{ ansible_default_ipv4.address }}'{% endraw %}"

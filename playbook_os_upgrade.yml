@@ -1,0 +1,58 @@
+---
+- name: Upgrade OS via rpm-ostree
+  hosts: all
+
+  tasks:
+    - name: Check status
+      ansible.builtin.command:
+        cmd: rpm-ostree status
+      changed_when: false
+      ignore_errors: true
+      register: status
+
+    - name: Only proceed on rpm-ostree systems
+      ansible.builtin.assert:
+        that:
+          - ansible_os_family == 'RedHat'
+          - status.rc == 0
+        success_msg: Detected RPM system and rpm-ostree status OK
+        fail_msg: Did not detect rpm-ostree, status check failed, or non-RPM system
+
+    - name: Display status
+      ansible.builtin.debug:
+        msg: "{{ status.stdout_lines }}"
+
+    - name: Upgrade OS
+      ansible.builtin.command:
+        cmd: rpm-ostree upgrade
+      register: upgrade
+      changed_when: "'Staging deployment...done' in upgrade.stdout"
+      become: true
+
+    - name: Apply upgrade
+      when: upgrade.changed # noqa: no-handler
+      block:
+        - name: Reboot system
+          ansible.builtin.reboot:
+          become: true
+
+        - name: Check status
+          ansible.builtin.command:
+            cmd: rpm-ostree status
+          changed_when: false
+          register: status
+
+        - name: Display status
+          ansible.builtin.debug:
+            msg: "{{ status.stdout_lines }}"
+
+    - name: Report final status
+      ansible.builtin.debug:
+        msg: |-
+          {%- if upgrade.changed -%}
+          System updated
+          {%- elif 'No upgrade available' in upgrade.stdout -%}
+          No upgrade available
+          {%- else -%}
+          Unknown status; check output
+          {%- endif -%}

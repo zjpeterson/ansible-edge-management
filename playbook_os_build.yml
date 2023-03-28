@@ -8,18 +8,3 @@
 
   roles:
     - infra.osbuild.builder
-
-  post_tasks:
-    - name: Get AAP post-install
-      ansible.builtin.get_url:
-        url: https://raw.githubusercontent.com/redhat-cop/infra.osbuild/2.0.0/roles/builder/templates/auto_register_aap.j2
-        dest: /tmp/auto_register_aap.j2
-      delegate_to: localhost
-
-    - name: Add AAP post-install
-      ansible.builtin.blockinfile:
-        block: |
-          %post
-          {{ lookup('template', '/tmp/auto_register_aap.j2') }}
-          %end
-        path: /var/www/html/{{ builder_blueprint_name }}/kickstart.ks

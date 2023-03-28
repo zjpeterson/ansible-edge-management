@@ -19,3 +19,5 @@ builder_aap_ks_user: edge
 builder_aap_ks_password: ansible
 builder_set_hostname: "{% raw %}{{ ansible_default_ipv4.macaddress | replace(':','') }}{% endraw %}"
 builder_set_variables: "{% raw %}ansible_host: '{{ ansible_default_ipv4.address }}'{% endraw %}"
+builder_kickstart_post: 
+  - "{{ lookup('ansible.builtin.template', '../templates/auto_register_aap.j2') }}"

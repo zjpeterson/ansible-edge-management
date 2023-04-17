@@ -36,15 +36,27 @@
           ansible.builtin.reboot:
           become: true
 
-        - name: Check status
+        - name: Check rpm-ostree status
           ansible.builtin.command:
             cmd: rpm-ostree status
           changed_when: false
-          register: status
+          register: ostree_status
+
+        - name: Check Greenboot status
+          ansible.builtin.command:
+            cmd: systemctl status greenboot-status.service
+          changed_when: false
+          register: greenboot_status
 
         - name: Display status
           ansible.builtin.debug:
-            msg: "{{ status.stdout_lines }}"
+            msg: "{{ ostree_status.stdout_lines }}"
+
+        - name: Verify success
+          ansible.builtin.assert:
+            that: "'FALLBACK BOOT DETECTED' not in greenboot_status.stdout"
+            success_msg: No fallback was detected
+            fail_msg: Fallback boot was detected
 
     - name: Report final status
       ansible.builtin.debug:

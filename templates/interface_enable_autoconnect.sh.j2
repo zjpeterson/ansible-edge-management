@@ -1,0 +1,6 @@
+cat > /etc/greenboot/red.d/interface_enable_autoconnect.sh <<EOF
+#!/bin/bash
+INTERFACE="{{ check_interface }}"
+nmcli con mod \$INTERFACE connection.autoconnect yes
+echo "\$(date) set \$INTERFACE to autoconnect" >> /var/roothome/greenboot.log
+EOF

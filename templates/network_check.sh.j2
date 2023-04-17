@@ -1,0 +1,24 @@
+cat > /etc/greenboot/check/required.d/network_check.sh <<EOF
+#!/bin/bash
+INTERFACE="{{ check_interface }}"
+PING_ADDRESS="{{ check_address }}"
+OPERSTATE=\$(cat /sys/class/net/\$INTERFACE/operstate)
+for i in {1..{{ check_retries }}}
+do
+        if [ "\$OPERSTATE" == "up" ]; then
+                echo "\$(date) interface \$INTERFACE is up" >> /var/roothome/greenboot.log
+                if ping -c 3 \$PING_ADDRESS >/dev/null; then
+                        echo "\$(date) ping to \$PING_ADDRESS OK" >> /var/roothome/greenboot.log
+                        exit 0
+                else
+                        echo "\$(date) ping to \$PING_ADDRESS failed"  >> /var/roothome/greenboot.log
+                        sleep {{ check_delay }}
+                fi
+        else
+                echo "\$(date) interface \$INTERFACE is not up" >> /var/roothome/greenboot.log
+                sleep {{ check_delay }}
+        fi
+done
+echo "\$(date) max retries reached" >> /var/roothome/greenboot.log
+exit 1
+EOF

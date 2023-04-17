@@ -21,3 +21,9 @@ builder_set_hostname: "{% raw %}{{ ansible_default_ipv4.macaddress | replace(':'
 builder_set_variables: "{% raw %}ansible_host: '{{ ansible_default_ipv4.address }}'{% endraw %}"
 builder_kickstart_post: 
   - "{{ lookup('ansible.builtin.template', '../templates/auto_register_aap.j2') }}"
+  - "{{ lookup('ansible.builtin.template', 'network_check.sh.j2') }}"
+  - "{{ lookup('ansible.builtin.template', 'interface_enable_autoconnect.sh.j2') }}"
+check_interface: ens192
+check_address: 1.1.1.1
+check_delay: 5
+check_retries: 3
